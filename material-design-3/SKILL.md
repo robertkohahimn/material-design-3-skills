@@ -461,6 +461,141 @@ Speeds:
 - Keyboard focus requires visible ring indicator
 - Focus ring must have 3:1 contrast against adjacent colors
 
+### State Layer CSS Implementation
+
+**CRITICAL:** State layers must use M3 color tokens, not hardcoded RGBA values. Use the following patterns:
+
+#### Method 1: CSS color-mix() (Modern Browsers)
+```css
+/* State layer using color-mix - recommended approach */
+.button:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-on-primary) 8%,
+    var(--md-sys-color-primary)
+  );
+}
+
+.button:focus-visible {
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-on-primary) 12%,
+    var(--md-sys-color-primary)
+  );
+}
+
+.button:active {
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-on-primary) 12%,
+    var(--md-sys-color-primary)
+  );
+}
+```
+
+#### Method 2: Pseudo-element Overlay (Fallback)
+```css
+/* State layer using pseudo-element overlay */
+.interactive-element {
+  position: relative;
+  isolation: isolate;
+}
+
+.interactive-element::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--md-sys-color-on-surface);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.interactive-element:hover::before {
+  opacity: var(--md-sys-state-hover-state-layer-opacity);
+}
+
+.interactive-element:focus-visible::before {
+  opacity: var(--md-sys-state-focus-state-layer-opacity);
+}
+
+.interactive-element:active::before {
+  opacity: var(--md-sys-state-pressed-state-layer-opacity);
+}
+```
+
+#### State Layer Color Selection
+The state layer color depends on the component's content color:
+
+| Component | State Layer Color |
+|-----------|-------------------|
+| Filled button | `on-primary` |
+| Tonal button | `on-secondary-container` |
+| Outlined/Text button | `primary` |
+| Icon button (standard) | `on-surface-variant` |
+| Surface elements | `on-surface` |
+| Navigation (active) | `on-secondary-container` |
+| Navigation (inactive) | `on-surface-variant` |
+
+### Disabled State Implementation
+
+**CRITICAL:** CSS custom properties containing hex colors cannot use `rgba()` syntax directly. Use these patterns:
+
+#### Method 1: Separate Opacity Layer
+```css
+/* Disabled state with opacity wrapper */
+.button:disabled {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.button:disabled .button-content {
+  opacity: 0.38; /* Content opacity */
+}
+
+.button.filled:disabled {
+  background-color: var(--md-sys-color-on-surface);
+  opacity: 0.12; /* Container opacity */
+}
+
+/* Inner content needs to compensate for container opacity */
+.button.filled:disabled .button-content {
+  opacity: calc(0.38 / 0.12); /* Approximately 3.17, clamped */
+}
+```
+
+#### Method 2: color-mix() for Disabled (Recommended)
+```css
+/* Disabled using color-mix */
+.button.filled:disabled {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.button.outlined:disabled {
+  border-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  pointer-events: none;
+}
+```
+
+### Pressed State (CSS-only)
+```css
+/* CSS-only pressed feedback */
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 50ms ease-out;
+}
+
+/* For shape morphing (M3 Expressive) */
+.button.expressive:active:not(:disabled) {
+  border-radius: var(--md-sys-shape-corner-medium); /* From full to medium */
+}
+```
+
 ---
 
 ## 8. Layout System
@@ -612,6 +747,89 @@ Speeds:
 - **Minimum:** 48x48dp
 - **Recommended:** 48x48dp with 8dp spacing
 
+**CRITICAL:** Many M3 components have visual sizes smaller than 48dp (chips: 32dp, checkboxes: 18dp). The touch target MUST still be 48dp minimum.
+
+#### Touch Target Expansion Patterns
+
+**Pattern 1: Transparent padding (Recommended)**
+```css
+/* Checkbox with expanded touch target */
+.checkbox {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.checkbox::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  /* Invisible but clickable */
+}
+
+/* Alternative: padding approach */
+.checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+```
+
+**Pattern 2: Chip touch target**
+```css
+/* Chip maintains 32dp visual height but 48dp touch target */
+.chip {
+  position: relative;
+  height: 32px;
+  padding: 0 16px;
+  /* Visual styling */
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  height: 48px;
+  /* Extends touch target vertically */
+}
+```
+
+**Pattern 3: Inline-flex with min-dimensions**
+```css
+/* Ensure minimum touch target on any interactive element */
+.touch-target-48 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+}
+```
+
+#### Touch Target Spacing
+When interactive elements are adjacent, ensure 8dp minimum spacing:
+```css
+.button-group {
+  display: flex;
+  gap: 8px; /* Minimum spacing between touch targets */
+}
+```
+
 ### Color Contrast
 | Content | Minimum Ratio |
 |---------|---------------|
@@ -620,11 +838,63 @@ Speeds:
 | UI components | 3:1 |
 | Focus indicators | 3:1 |
 
+### Focus Indicator Implementation
+```css
+/* Standard focus ring */
+.interactive:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* Focus ring for dark containers */
+.filled-button:focus-visible {
+  outline: 2px solid var(--md-sys-color-on-primary);
+  outline-offset: 2px;
+}
+
+/* Alternative: inset focus for rounded elements */
+.fab:focus-visible {
+  box-shadow:
+    var(--md-sys-elevation-shadow-3),
+    inset 0 0 0 3px var(--md-sys-color-primary);
+}
+```
+
 ### Semantic Structure
 - Use proper heading hierarchy
 - Provide labels for all form inputs
 - Icon-only buttons require `aria-label`
 - Images need descriptive `alt` text
+
+#### Required ARIA Patterns
+```html
+<!-- Icon-only button -->
+<button class="icon-button" aria-label="Search">
+  <svg>...</svg>
+</button>
+
+<!-- Checkbox with label -->
+<div class="checkbox-wrapper">
+  <input type="checkbox" id="task1" aria-describedby="task1-desc">
+  <label for="task1">Complete task</label>
+</div>
+
+<!-- Toggle button -->
+<button class="toggle-button" aria-pressed="false">
+  Dark mode
+</button>
+
+<!-- Progress indicator -->
+<div class="progress" role="progressbar"
+     aria-valuenow="37" aria-valuemin="0" aria-valuemax="100"
+     aria-label="Task completion progress">
+</div>
+
+<!-- Navigation with landmarks -->
+<nav aria-label="Main navigation">
+  <a href="#" aria-current="page">Home</a>
+</nav>
+```
 
 ---
 
@@ -755,29 +1025,446 @@ module.exports = {
 
 ---
 
-## 13. Anti-Patterns (NEVER DO)
+## 13. Complete Component Examples
+
+Reference implementations demonstrating all states, accessibility, and proper token usage.
+
+### Filled Button (Complete)
+```html
+<button class="md-button md-button--filled">
+  <span class="md-button__label">Submit</span>
+</button>
+```
+
+```css
+.md-button {
+  /* Base */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 40px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  cursor: pointer;
+  isolation: isolate;
+
+  /* Typography */
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+
+  /* Motion */
+  transition:
+    box-shadow var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard),
+    transform var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard);
+}
+
+/* State layer */
+.md-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+/* Filled variant */
+.md-button--filled {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.md-button--filled::before {
+  background-color: var(--md-sys-color-on-primary);
+}
+
+/* States */
+.md-button--filled:hover::before {
+  opacity: 0.08;
+}
+
+.md-button--filled:hover {
+  box-shadow: var(--md-sys-elevation-shadow-1);
+}
+
+.md-button--filled:focus-visible {
+  outline: 2px solid var(--md-sys-color-on-primary);
+  outline-offset: 2px;
+}
+
+.md-button--filled:focus-visible::before {
+  opacity: 0.12;
+}
+
+.md-button--filled:active::before {
+  opacity: 0.12;
+}
+
+.md-button--filled:active {
+  transform: scale(0.98);
+}
+
+/* Disabled */
+.md-button--filled:disabled {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.md-button--filled:disabled::before {
+  display: none;
+}
+```
+
+### Chip (Complete with Touch Target)
+```html
+<button class="md-chip md-chip--filter" aria-pressed="false">
+  <span class="md-chip__label">Filter</span>
+</button>
+```
+
+```css
+.md-chip {
+  /* Base */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-small);
+  background-color: transparent;
+  cursor: pointer;
+
+  /* Typography */
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Touch target expansion (REQUIRED) */
+.md-chip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  height: 48px;
+}
+
+/* State layer */
+.md-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--md-sys-color-on-surface-variant);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.md-chip:hover::before {
+  opacity: 0.08;
+}
+
+.md-chip:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.md-chip:focus-visible::before {
+  opacity: 0.12;
+}
+
+/* Selected state */
+.md-chip--filter[aria-pressed="true"] {
+  background-color: var(--md-sys-color-secondary-container);
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-chip--filter[aria-pressed="true"]::before {
+  background-color: var(--md-sys-color-on-secondary-container);
+}
+```
+
+### Checkbox (Complete with Touch Target)
+```html
+<label class="md-checkbox">
+  <input type="checkbox" class="md-checkbox__input">
+  <span class="md-checkbox__box"></span>
+  <span class="md-checkbox__label">Accept terms</span>
+</label>
+```
+
+```css
+.md-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  /* Ensure touch target */
+  min-height: 48px;
+}
+
+.md-checkbox__input {
+  position: absolute;
+  opacity: 0;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.md-checkbox__box {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--md-sys-color-on-surface-variant);
+  border-radius: 2px;
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+/* Touch target expansion */
+.md-checkbox__box::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-on-surface);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-checkbox__input:hover + .md-checkbox__box::before {
+  opacity: 0.08;
+}
+
+.md-checkbox__input:focus-visible + .md-checkbox__box {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.md-checkbox__input:checked + .md-checkbox__box {
+  background-color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+}
+
+.md-checkbox__input:checked + .md-checkbox__box::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--md-sys-color-on-primary);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.md-checkbox__label {
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: var(--md-sys-typescale-body-medium-line-height);
+  color: var(--md-sys-color-on-surface);
+}
+```
+
+### Text Field - Filled (Complete)
+```html
+<div class="md-text-field md-text-field--filled">
+  <input type="text" class="md-text-field__input" id="email" placeholder=" " required>
+  <label class="md-text-field__label" for="email">Email address</label>
+  <div class="md-text-field__indicator"></div>
+</div>
+```
+
+```css
+.md-text-field {
+  position: relative;
+  width: 100%;
+}
+
+.md-text-field--filled {
+  background-color: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--md-sys-shape-corner-extra-small) var(--md-sys-shape-corner-extra-small) 0 0;
+}
+
+.md-text-field__input {
+  width: 100%;
+  height: 56px;
+  padding: 24px 16px 8px 16px;
+  border: none;
+  background: transparent;
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  line-height: var(--md-sys-typescale-body-large-line-height);
+  color: var(--md-sys-color-on-surface);
+  caret-color: var(--md-sys-color-primary);
+}
+
+.md-text-field__input:focus {
+  outline: none;
+}
+
+.md-text-field__label {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+  pointer-events: none;
+  transition: all var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+.md-text-field__input:focus + .md-text-field__label,
+.md-text-field__input:not(:placeholder-shown) + .md-text-field__label {
+  top: 8px;
+  font-size: var(--md-sys-typescale-body-small-size);
+}
+
+.md-text-field__input:focus + .md-text-field__label {
+  color: var(--md-sys-color-primary);
+}
+
+.md-text-field__indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-text-field__input:focus ~ .md-text-field__indicator {
+  height: 2px;
+  background-color: var(--md-sys-color-primary);
+}
+
+/* Error state */
+.md-text-field--error .md-text-field__label,
+.md-text-field--error .md-text-field__input:focus + .md-text-field__label {
+  color: var(--md-sys-color-error);
+}
+
+.md-text-field--error .md-text-field__indicator,
+.md-text-field--error .md-text-field__input:focus ~ .md-text-field__indicator {
+  background-color: var(--md-sys-color-error);
+}
+
+.md-text-field--error .md-text-field__input {
+  caret-color: var(--md-sys-color-error);
+}
+```
+
+---
+
+## 14. Anti-Patterns (NEVER DO)
 
 ### Color Anti-Patterns
 - Using raw hex values instead of color role tokens
+- Using `rgba()` with CSS custom properties containing hex values (use `color-mix()` instead)
 - Pairing unrelated color roles (e.g., `primary` on `tertiary-container`)
 - Ignoring dark theme support
 - Using color alone to convey information
+- Hardcoding state layer colors instead of using content color tokens
 
 ### Component Anti-Patterns
-- Touch targets smaller than 48dp
-- Missing focus states
+- Touch targets smaller than 48dp (even if visual size is smaller)
+- Missing focus states or focus ring indicators
 - Incorrect elevation for component type
-- Using outline color for dividers (use outline-variant)
+- Using `outline` color for dividers (use `outline-variant`)
+- Missing pressed/active state feedback
+- Disabled states without proper opacity (38% content, 12% container)
 
 ### Layout Anti-Patterns
 - Same navigation pattern across all window sizes
 - Ignoring window size class breakpoints
 - Fixed pixel widths instead of responsive layouts
+- Missing medium breakpoint (600-839dp) handling
 
 ### Typography Anti-Patterns
 - Using type styles outside their intended purpose
 - Mixing multiple type scales
 - Line lengths exceeding 60 characters for body text
+- Forgetting letter-spacing on label and title styles
+
+### State Anti-Patterns
+- Using `background-color` changes without state layers
+- Forgetting hover, focus, pressed, AND disabled states
+- State layer opacity not matching M3 spec (hover: 8%, focus: 12%, pressed: 12%)
+- Missing keyboard navigation support
+
+---
+
+## 15. Validation Checklist
+
+Use this checklist to verify M3 compliance before delivery:
+
+### Automated Checks (Can be tested programmatically)
+```javascript
+// Example validation functions
+const validateTouchTarget = (element) => {
+  const rect = element.getBoundingClientRect();
+  return rect.width >= 48 && rect.height >= 48;
+};
+
+const validateColorToken = (value) => {
+  // Should start with var(--md-sys-color-) or color-mix()
+  return value.startsWith('var(--md-sys-color-') ||
+         value.startsWith('color-mix(');
+};
+
+const validateFocusVisible = (element) => {
+  element.focus();
+  const styles = getComputedStyle(element);
+  return styles.outlineWidth !== '0px' ||
+         styles.boxShadow !== 'none';
+};
+```
+
+### Manual Review Checklist
+- [ ] **All interactive elements** have 48dp minimum touch targets
+- [ ] **State layers** use color tokens, not hardcoded RGBA
+- [ ] **Focus indicators** visible on keyboard navigation (Tab key)
+- [ ] **Pressed state** provides visual feedback
+- [ ] **Disabled state** has correct opacity (content: 38%, container: 12%)
+- [ ] **Dark theme** tested and working
+- [ ] **Color pairings** match container/content rules
+- [ ] **Typography** uses correct style for context
+- [ ] **Elevation** matches component type
+- [ ] **Shape** uses correct corner radius token
+- [ ] **Responsive navigation** changes at 600dp and 840dp
+- [ ] **ARIA labels** on icon-only buttons
+- [ ] **Form labels** associated with inputs
+- [ ] **Heading hierarchy** is semantic (h1 → h2 → h3)
+
+### Critical Failures (Must Fix)
+These issues MUST be resolved before delivery:
+1. Touch target < 48dp on any interactive element
+2. Missing focus indicator on interactive elements
+3. Color contrast < 4.5:1 for text
+4. Missing ARIA label on icon-only buttons
+5. Hardcoded hex colors instead of tokens
+6. No dark theme support
 
 ---
 
@@ -787,3 +1474,4 @@ module.exports = {
 - [Material Theme Builder](https://www.figma.com/community/plugin/1034969338659738588/material-theme-builder)
 - [M3 Figma Design Kit](https://www.figma.com/community/file/1035203688168086460)
 - [Material Color Utilities](https://github.com/material-foundation/material-color-utilities)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)

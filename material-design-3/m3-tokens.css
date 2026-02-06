@@ -582,3 +582,174 @@
 .md-shape-full {
   border-radius: var(--md-sys-shape-corner-full);
 }
+
+/* ============================================
+ * STATE LAYER UTILITIES
+ * ============================================ */
+
+/* Base state layer mixin - add to interactive elements */
+.md-state-layer {
+  position: relative;
+  isolation: isolate;
+}
+
+.md-state-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+
+/* State layer colors - use the appropriate one for your component */
+.md-state-layer--on-surface::before {
+  background-color: var(--md-sys-color-on-surface);
+}
+
+.md-state-layer--on-surface-variant::before {
+  background-color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-state-layer--primary::before {
+  background-color: var(--md-sys-color-primary);
+}
+
+.md-state-layer--on-primary::before {
+  background-color: var(--md-sys-color-on-primary);
+}
+
+.md-state-layer--on-secondary-container::before {
+  background-color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-state-layer--on-primary-container::before {
+  background-color: var(--md-sys-color-on-primary-container);
+}
+
+/* State opacities */
+.md-state-layer:hover::before {
+  opacity: var(--md-sys-state-hover-state-layer-opacity);
+}
+
+.md-state-layer:focus-visible::before {
+  opacity: var(--md-sys-state-focus-state-layer-opacity);
+}
+
+.md-state-layer:active::before {
+  opacity: var(--md-sys-state-pressed-state-layer-opacity);
+}
+
+/* ============================================
+ * TOUCH TARGET UTILITIES
+ * ============================================ */
+
+/* Minimum 48dp touch target - use on small interactive elements */
+.md-touch-target-48 {
+  position: relative;
+}
+
+.md-touch-target-48::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* Touch target wrapper - centers content with 48dp touch area */
+.md-touch-target-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* ============================================
+ * FOCUS INDICATOR UTILITIES
+ * ============================================ */
+
+.md-focus-ring:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.md-focus-ring--invert:focus-visible {
+  outline-color: var(--md-sys-color-on-primary);
+}
+
+/* ============================================
+ * DISABLED STATE UTILITIES
+ * ============================================ */
+
+.md-disabled {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.md-disabled-content {
+  opacity: var(--md-sys-state-disabled-content-opacity);
+}
+
+.md-disabled-container {
+  opacity: var(--md-sys-state-disabled-container-opacity);
+}
+
+/* ============================================
+ * RESPONSIVE BREAKPOINTS
+ * ============================================ */
+
+/* Compact: < 600px */
+@media (max-width: 599px) {
+  .md-hide-compact { display: none !important; }
+  .md-show-compact { display: block !important; }
+}
+
+/* Medium: 600-839px */
+@media (min-width: 600px) and (max-width: 839px) {
+  .md-hide-medium { display: none !important; }
+  .md-show-medium { display: block !important; }
+}
+
+/* Expanded: 840-1199px */
+@media (min-width: 840px) and (max-width: 1199px) {
+  .md-hide-expanded { display: none !important; }
+  .md-show-expanded { display: block !important; }
+}
+
+/* Large: 1200-1599px */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .md-hide-large { display: none !important; }
+  .md-show-large { display: block !important; }
+}
+
+/* Extra-large: 1600px+ */
+@media (min-width: 1600px) {
+  .md-hide-extra-large { display: none !important; }
+  .md-show-extra-large { display: block !important; }
+}
+
+/* Navigation patterns by window size */
+@media (max-width: 599px) {
+  .md-nav-rail { display: none !important; }
+  .md-nav-drawer { display: none !important; }
+  .md-nav-bottom { display: flex !important; }
+}
+
+@media (min-width: 600px) and (max-width: 839px) {
+  .md-nav-rail { display: flex !important; }
+  .md-nav-drawer { display: none !important; }
+  .md-nav-bottom { display: none !important; }
+}
+
+@media (min-width: 840px) {
+  .md-nav-rail { display: flex !important; }
+  .md-nav-drawer { display: flex !important; }
+  .md-nav-bottom { display: none !important; }
+}

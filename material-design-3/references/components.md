@@ -10,7 +10,7 @@ Quick reference for all M3 components with their key specifications.
 | Filled | `primary` | `on-primary` | 0 |
 | Tonal | `secondary-container` | `on-secondary-container` | 0 |
 | Elevated | `surface-container-low` | `primary` | 1 |
-| Outlined | transparent | `on-surface-variant` | 0 |
+| Outlined | transparent | `primary` | 0 |
 | Text | transparent | `primary` | 0 |
 
 **Sizes:** XS (32dp), Small (40dp), Medium (48dp), Large (56dp), XL (64dp)
